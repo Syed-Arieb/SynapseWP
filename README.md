@@ -35,7 +35,7 @@
 
 1. Create or edit a Post.
 2. Look for the "SynapseWP AI Assistant" box in the sidebar.
-3. Type a brief idea or topic (e.g., "The importance of improved UI in 2024").
+3. Type a brief idea or topic (e.g., "The importance of improved UI in 2026").
 4. Click **Expand with AI**.
 5. Copy the generated result and use it in your content!
 
