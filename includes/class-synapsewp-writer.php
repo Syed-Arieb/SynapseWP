@@ -47,21 +47,57 @@ class SynapseWP_Writer
     {
         $params = $request->get_json_params();
         $text = sanitize_text_field($params['text'] ?? '');
+        $mode = sanitize_text_field($params['mode'] ?? 'answer');
 
         if (empty($text)) {
             return new WP_Error('missing_text', __('No text provided for expansion.', 'synapsewp'), ['status' => 400]);
         }
 
-        $prompt = "Expand this idea into a professional paragraph: " . $text;
+        // --- WRITER MODE ---
+        if ($mode === 'writer') {
+            // Prompt for JSON response with title and content
+            $prompt = "You are a professional blog writer. Writes a comprehensive article section based on this topic: '{$text}'. 
+            Also generate an engaging, SEO-optimized title for this post.
+            
+            Return strictly valid JSON in the following format:
+            {
+                \"title\": \"Your Title Here\",
+                \"content\": \"Your HTML formatted content here (use <p>, <h2>, <ul> etc.)\"
+            }
+            Do not include ```json fences or any other text.";
 
-        // Call the AI API wrapper.
+            $raw_response = SynapseWP_API::generate($prompt);
+
+            if (is_wp_error($raw_response)) {
+                return $raw_response;
+            }
+
+            // Cleanup potential markdown fences
+            $clean_json = str_replace(['```json', '```'], '', $raw_response);
+            $data = json_decode($clean_json, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                // Fallback if JSON parsing fails - return as content only
+                return rest_ensure_response([
+                    'data' => [
+                        'title' => '',
+                        'content' => $raw_response
+                    ]
+                ]);
+            }
+
+            return rest_ensure_response(['data' => $data]);
+        }
+
+        // --- ANSWER MODE (Default) ---
+        $prompt = "Expand this idea into a professional paragraph: " . $text;
         $output = SynapseWP_API::generate($prompt);
 
         if (is_wp_error($output)) {
             return $output;
         }
 
-        return rest_ensure_response(['generated_text' => $output]);
+        return rest_ensure_response(['data' => ['content' => $output]]);
     }
 
     /**
@@ -81,7 +117,6 @@ class SynapseWP_Writer
         remove_action('publish_post', [$this, 'auto_categorize'], 10);
 
         // Prepare the prompt using a snippet of the content.
-        // Increased context length for better categorization
         $content_snippet = wp_trim_words($post->post_content, 100);
         if (empty($content_snippet)) {
             return; // Initial empty post, skip.
@@ -122,8 +157,7 @@ class SynapseWP_Writer
 
         foreach ($names as $name) {
             $name = trim($name);
-            // Cleanup: remove dot if it ends with one (common AI output)
-            $name = rtrim($name, '.');
+            $name = rtrim($name, '.'); // Remove trailing docs
 
             if (empty($name)) {
                 continue;

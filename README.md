@@ -52,3 +52,17 @@ just **Publish** your post! SynapseWP will analyze your content and automaticall
 ## 📄 License
 
 GPLv2 or later.
+
+## 📦 Changelog
+
+### 1.0.2
+
+- **New Feature**: Writer Mode! Now the AI can write directly into your post editor (compatible with Classic & Gutenberg).
+- **New Feature**: Automatic Title Generation in Writer Mode for SEO optimization.
+
+### 1.0.1
+
+- **Enhancement**: Added "Max Categories" setting to control auto-categorization limits.
+- **Fix**: Improved categorization logic to exclude generic terms (e.g., "Uncategorized").
+- **Fix**: Automatically removes the default "Uncategorized" category when new categories are assigned.
+- **Improvement**: Increased AI context window for better accuracy.
