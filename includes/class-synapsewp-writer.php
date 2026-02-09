@@ -81,12 +81,24 @@ class SynapseWP_Writer
         remove_action('publish_post', [$this, 'auto_categorize'], 10);
 
         // Prepare the prompt using a snippet of the content.
-        $content_snippet = wp_trim_words($post->post_content, 50);
+        // Increased context length for better categorization
+        $content_snippet = wp_trim_words($post->post_content, 100);
         if (empty($content_snippet)) {
             return; // Initial empty post, skip.
         }
 
-        $prompt = "Suggest 3 WordPress categories (comma separated) for the following content. Output only the category names, no numbering or extra text: " . $content_snippet;
+        $max_cats = get_option('sma_max_categories', 3);
+
+        // Enhanced prompt for smarter categorization
+        $prompt = "Analyze the following content and suggest exactly {$max_cats} relevant WordPress categories. 
+        Rules:
+        1. Return ONLY a comma-separated list of names. 
+        2. Do NOT number them. 
+        3. Do NOT use generic terms like 'Uncategorized', 'General', or 'Updates'. 
+        4. Be specific to the topic.
+        
+        Content: " . $content_snippet;
+
         $categories = SynapseWP_API::generate($prompt);
 
         if (!is_wp_error($categories) && !empty($categories)) {
@@ -110,6 +122,9 @@ class SynapseWP_Writer
 
         foreach ($names as $name) {
             $name = trim($name);
+            // Cleanup: remove dot if it ends with one (common AI output)
+            $name = rtrim($name, '.');
+
             if (empty($name)) {
                 continue;
             }
@@ -129,9 +144,26 @@ class SynapseWP_Writer
             }
         }
 
-        // Assign the categories to the post, appending to existing ones.
+        // Assign the categories to the post.
         if (!empty($ids)) {
-            wp_set_post_categories($post_id, $ids, true);
+            // Get current categories to check for "Uncategorized"
+            $current_cats = wp_get_post_categories($post_id);
+
+            // "Uncategorized" usually has ID 1, but we should check by name to be sure or just assume default default.
+            // Safest way is to remove default category if we are adding new valid ones.
+            $default_category = get_option('default_category');
+
+            // Add new IDs to the current list
+            $new_cats = array_unique(array_merge($current_cats, $ids));
+
+            // Remove default category if it exists in the list AND we have other categories
+            if (count($new_cats) > 1 && in_array($default_category, $new_cats)) {
+                $new_cats = array_diff($new_cats, array($default_category));
+            }
+
+            // wp_set_post_categories with last arg false replaces all categories. 
+            // We manipulated the array manually to include previous ones minus default, so we can use false (replace).
+            wp_set_post_categories($post_id, $new_cats, false);
         }
     }
 }

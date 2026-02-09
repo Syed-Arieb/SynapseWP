@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SynapseWP - AI Assistant
  * Description: An AI assistant for categorization and writing.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Syed Muhammad Arieb
  * License: GPLv2 or later
  */

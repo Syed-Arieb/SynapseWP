@@ -21,7 +21,7 @@ class SynapseWP_Settings
             'manage_options',
             'synapsewp-settings',
             array($this, 'create_admin_page'),
-            'dashicons-superhero', // Changed icon to something more "AI" like
+            'dashicons-superhero',
             6
         );
     }
@@ -30,6 +30,7 @@ class SynapseWP_Settings
     {
         register_setting('synapsewp_option_group', 'sma_ai_key', 'sanitize_text_field');
         register_setting('synapsewp_option_group', 'sma_ai_model', 'sanitize_text_field');
+        register_setting('synapsewp_option_group', 'sma_max_categories', 'intval');
 
         add_settings_section(
             'synapsewp_main_section',
@@ -50,6 +51,14 @@ class SynapseWP_Settings
             'sma_ai_model',
             'AI Model',
             array($this, 'render_ai_model_field'),
+            'synapsewp-settings',
+            'synapsewp_main_section'
+        );
+
+        add_settings_field(
+            'sma_max_categories',
+            'Max Categories',
+            array($this, 'render_max_categories_field'),
             'synapsewp-settings',
             'synapsewp_main_section'
         );
@@ -77,6 +86,16 @@ class SynapseWP_Settings
             <option value="gemini-2.5-pro" <?php selected($model, 'gemini-2.5-pro'); ?>>Gemini 2.5 Pro (Best Quality)</option>
         </select>
         <p class="description">Select the model to use for generation.</p>
+        <?php
+    }
+
+    public function render_max_categories_field()
+    {
+        $value = get_option('sma_max_categories', 3);
+        ?>
+        <input type="number" name="sma_max_categories" value="<?php echo esc_attr($value); ?>" min="1" max="10" step="1"
+            class="small-text">
+        <p class="description">Maximum number of AI-generated categories per post.</p>
         <?php
     }
 
