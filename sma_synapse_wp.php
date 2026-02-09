@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SYNAPSEWP_VERSION', '1.0.0');
+define('SYNAPSEWP_VERSION', '1.0.2');
 define('SYNAPSEWP_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SYNAPSEWP_PLUGIN_URL', plugin_dir_url(__FILE__));
 
