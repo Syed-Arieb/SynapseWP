@@ -137,7 +137,7 @@ class SynapseWP_Writer
         $categories = SynapseWP_API::generate($prompt);
 
         if (!is_wp_error($categories) && !empty($categories)) {
-            $this->assign_categories($post_id, $categories);
+            $this->assign_categories($post_id, $categories, $max_cats);
         }
 
         // Re-hook in case it's needed later in the same execution (unlikely but good practice).
@@ -149,10 +149,17 @@ class SynapseWP_Writer
      *
      * @param int    $post_id     The post ID.
      * @param string $category_list Comma-separated list of category names.
+     * @param int    $limit       Maximum number of categories to assign.
      */
-    private function assign_categories($post_id, $category_list)
+    private function assign_categories($post_id, $category_list, $limit = 3)
     {
         $names = explode(',', $category_list);
+
+        // Enforce the limit
+        if (count($names) > $limit) {
+            $names = array_slice($names, 0, $limit);
+        }
+
         $ids = [];
 
         foreach ($names as $name) {

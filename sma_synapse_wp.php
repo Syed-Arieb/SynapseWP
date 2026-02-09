@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SynapseWP - AI Assistant
  * Description: An AI assistant for categorization and writing.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Author: Syed Muhammad Arieb
  * License: GPLv2 or later
  */
@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('SYNAPSEWP_VERSION', '1.0.2');
+define('SYNAPSEWP_VERSION', '1.0.3');
 define('SYNAPSEWP_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('SYNAPSEWP_PLUGIN_URL', plugin_dir_url(__FILE__));
 
