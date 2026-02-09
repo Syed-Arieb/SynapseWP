@@ -55,6 +55,10 @@ GPLv2 or later.
 
 ## 📦 Changelog
 
+### 1.0.3
+
+- **Fix**: Enforce Max Categories limit during auto-assignment.
+
 ### 1.0.2
 
 - **New Feature**: Writer Mode! Now the AI can write directly into your post editor (compatible with Classic & Gutenberg).
