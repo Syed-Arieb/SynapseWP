@@ -67,17 +67,17 @@ class SynapseWP_Settings
     public function render_ai_key_field()
     {
         $value = get_option('sma_ai_key');
-        ?>
+?>
         <input type="password" name="sma_ai_key" value="<?php echo esc_attr($value); ?>" class="regular-text">
         <p class="description">Enter your Google Gemini API Key. <a href="https://makersuite.google.com/app/apikey"
                 target="_blank">Get one here</a>.</p>
-        <?php
+    <?php
     }
 
     public function render_ai_model_field()
     {
         $model = get_option('sma_ai_model', 'gemini-2.5-flash-lite');
-        ?>
+    ?>
         <select name="sma_ai_model">
             <option value="gemini-2.5-flash-lite" <?php selected($model, 'gemini-2.5-flash-lite'); ?>>Gemini 2.5 Flash Lite
                 (Fastest)</option>
@@ -86,22 +86,22 @@ class SynapseWP_Settings
             <option value="gemini-2.5-pro" <?php selected($model, 'gemini-2.5-pro'); ?>>Gemini 2.5 Pro (Best Quality)</option>
         </select>
         <p class="description">Select the model to use for generation.</p>
-        <?php
+    <?php
     }
 
     public function render_max_categories_field()
     {
         $value = get_option('sma_max_categories', 3);
-        ?>
+    ?>
         <input type="number" name="sma_max_categories" value="<?php echo esc_attr($value); ?>" min="1" max="10" step="1"
             class="small-text">
         <p class="description">Maximum number of AI-generated categories per post.</p>
-        <?php
+    <?php
     }
 
     public function create_admin_page()
     {
-        ?>
+    ?>
         <div class="wrap">
             <h1>SynapseWP AI Settings</h1>
             <form method="post" action="options.php">
@@ -112,6 +112,6 @@ class SynapseWP_Settings
                 ?>
             </form>
         </div>
-        <?php
+<?php
     }
 }

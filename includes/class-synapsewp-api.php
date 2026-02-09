@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 
 /**
  * Class SynapseWP_API
- * 
+ *
  * Handles all communications with the Google Gemini API.
  */
 class SynapseWP_API

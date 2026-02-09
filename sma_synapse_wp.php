@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: SynapseWP - AI Assistant
  * Description: An AI assistant for categorization and writing.

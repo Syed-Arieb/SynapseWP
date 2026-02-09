@@ -42,7 +42,7 @@ class SynapseWP_UI
      */
     public function render_meta_box()
     {
-        ?>
+?>
         <div class="synapsewp-ai-wrapper">
             <!-- Mode Toggle -->
             <div style="margin-bottom: 10px; display: flex; gap: 15px; font-size: 12px; color: #666;">
@@ -88,7 +88,7 @@ class SynapseWP_UI
                 </div>
             </div>
         </div>
-        <?php
+<?php
     }
 
     /**
