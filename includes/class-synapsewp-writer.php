@@ -43,11 +43,18 @@ class SynapseWP_Writer
      * @param WP_REST_Request $request The request object.
      * @return WP_REST_Response|WP_Error
      */
+    /**
+     * Callback API handler for text expansion.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
     public function handle_expansion($request)
     {
         $params = $request->get_json_params();
         $text = sanitize_text_field($params['text'] ?? '');
         $mode = sanitize_text_field($params['mode'] ?? 'answer');
+        $history = isset($params['history']) ? $params['history'] : [];
 
         if (empty($text)) {
             return new WP_Error('missing_text', __('No text provided for expansion.', 'synapsewp'), ['status' => 400]);
@@ -66,6 +73,8 @@ class SynapseWP_Writer
             }
             Do not include ```json fences or any other text.";
 
+            // Writer mode currently doesn't support full history context to keep the "one-shot article" focus,
+            // but we could add it if requested. For now, it stays as is.
             $raw_response = SynapseWP_API::generate($prompt);
 
             if (is_wp_error($raw_response)) {
@@ -77,7 +86,14 @@ class SynapseWP_Writer
             $data = json_decode($clean_json, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                // Fallback if JSON parsing fails - return as content only
+                // Try to extract JSON from the string using regex if direct decode fails
+                if (preg_match('/\{.*\}/s', $clean_json, $matches)) {
+                    $data = json_decode($matches[0], true);
+                }
+            }
+
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+                // Fallback
                 return rest_ensure_response([
                     'data' => [
                         'title' => '',
@@ -89,8 +105,27 @@ class SynapseWP_Writer
             return rest_ensure_response(['data' => $data]);
         }
 
-        // --- ANSWER MODE (Default) ---
-        $prompt = "Expand this idea into a professional paragraph: " . $text;
+        // --- CHAT / ANSWER MODE ---
+
+        // Convert history to string context if API doesn't support chat objects directly (Gemini 1.5/2.5 often prefers simple string for REST unless using specific chat endpoints).
+        // For simplicity and compatibility with our existing `generate` method which expects a string prompt,
+        // we will append the history as specific context.
+
+        $context = "";
+        if (!empty($history) && is_array($history)) {
+            $context = "Previous Conversation History:\n";
+            foreach ($history as $msg) {
+                $role = isset($msg['role']) && $msg['role'] === 'user' ? 'User' : 'AI';
+                $content = isset($msg['parts'][0]['text']) ? $msg['parts'][0]['text'] : '';
+                if ($content) {
+                    $context .= "{$role}: {$content}\n";
+                }
+            }
+            $context .= "\nCurrent Request:\n";
+        }
+
+        $prompt = "You are a helpful WordPress AI assistant. Respond professionally to the user.\n" . $context . $text;
+
         $output = SynapseWP_API::generate($prompt);
 
         if (is_wp_error($output)) {

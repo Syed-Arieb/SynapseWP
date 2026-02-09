@@ -43,40 +43,56 @@ class SynapseWP_UI
     public function render_meta_box()
     {
         ?>
-        <div class="synapsewp-ai-container">
-            <textarea id="synapsewp-ai-input" class="large-text" rows="4"
-                placeholder="<?php esc_attr_e("Write an idea or topic...", 'synapsewp'); ?>"></textarea>
-
-            <div style="margin-top: 10px; margin-bottom: 10px;">
-                <label style="margin-right: 15px;">
+        <div class="synapsewp-ai-wrapper">
+            <!-- Mode Toggle -->
+            <div style="margin-bottom: 10px; display: flex; gap: 15px; font-size: 12px; color: #666;">
+                <label>
                     <input type="radio" name="synapsewp_mode" value="answer" checked>
-                    <?php esc_html_e('Answer Mode', 'synapsewp'); ?>
+                    <?php esc_html_e('Chat Mode', 'synapsewp'); ?>
                 </label>
                 <label>
                     <input type="radio" name="synapsewp_mode" value="writer">
                     <?php esc_html_e('Writer Mode', 'synapsewp'); ?>
                 </label>
-                <p class="description" style="margin-top: 5px; font-size: 12px;">
-                    <em><?php esc_html_e('Answer: Shows result below. Writer: Inserts into post & updates title.', 'synapsewp'); ?></em>
-                </p>
             </div>
 
-            <div style="display: flex; align-items: center; justify-content: space-between;">
-                <button type="button" id="synapsewp-ai-btn" class="button button-primary">
-                    <?php esc_html_e('Generate', 'synapsewp'); ?>
-                </button>
-                <span id="synapsewp-ai-spinner" class="spinner" style="float: none; margin: 0;"></span>
+            <!-- Templates -->
+            <div class="synapsewp-templates">
+                <span class="synapsewp-chip"
+                    data-prompt="Suggest 5 headline ideas for this topic"><?php esc_html_e('Headlines', 'synapsewp'); ?></span>
+                <span class="synapsewp-chip"
+                    data-prompt="Summarize the selected text"><?php esc_html_e('Summarize', 'synapsewp'); ?></span>
+                <span class="synapsewp-chip"
+                    data-prompt="Fix grammar and improve flow"><?php esc_html_e('Fix Grammar', 'synapsewp'); ?></span>
+                <span class="synapsewp-chip"
+                    data-prompt="Write an intro paragraph regarding..."><?php esc_html_e('Intro', 'synapsewp'); ?></span>
             </div>
 
-            <div id="synapsewp-ai-result"
-                style="margin-top:10px; padding:10px; background:#f0f0f1; border: 1px solid #ccd0d4; border-radius: 4px; display:none;">
+            <!-- Chat Container -->
+            <div class="synapsewp-chat-container">
+                <div class="synapsewp-chat-history">
+                    <div class="synapsewp-message ai">
+                        <?php esc_html_e('Hello! How can I help you write today?', 'synapsewp'); ?>
+                    </div>
+                </div>
+
+                <div class="synapsewp-chat-input-area">
+                    <textarea id="synapsewp-chat-input" class="synapsewp-chat-input" rows="1"
+                        placeholder="<?php esc_attr_e('Type a message...', 'synapsewp'); ?>"></textarea>
+                    <div class="synapsewp-chat-controls">
+                        <small style="color: #888;">Enter to send, Shift+Enter for new line</small>
+                        <button type="button" id="synapsewp-send-btn" class="button button-primary">
+                            <?php esc_html_e('Send', 'synapsewp'); ?>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         <?php
     }
 
     /**
-     * Enceues the necessary JavaScript for the AI functionality.
+     * Enqueues the necessary assets for the AI functionality.
      *
      * @param string $hook The current admin page hook.
      */
@@ -84,117 +100,18 @@ class SynapseWP_UI
     {
         global $post;
 
-        // Only load on post edit screens and if we have a valid post object.
         if (!in_array($hook, ['post.php', 'post-new.php']) || !$post || 'post' !== $post->post_type) {
             return;
         }
 
-        // Enqueue jQuery (standard WP dependency).
-        wp_enqueue_script('jquery');
+        // Enqueue Assets
+        wp_enqueue_style('synapsewp-admin-css', SYNAPSEWP_PLUGIN_URL . 'assets/css/synapsewp-admin.css', [], SYNAPSEWP_VERSION);
+        wp_enqueue_script('synapsewp-admin-js', SYNAPSEWP_PLUGIN_URL . 'assets/js/synapsewp-admin.js', ['jquery', 'wp-blocks', 'wp-element', 'wp-components', 'wp-data'], SYNAPSEWP_VERSION, true);
 
-        $script = "
-        jQuery(document).ready(function($) {
-            $('#synapsewp-ai-btn').on('click', function(e) {
-                e.preventDefault();
-                
-                var idea = $('#synapsewp-ai-input').val();
-                var mode = $('input[name=\"synapsewp_mode\"]:checked').val();
-
-                if (!idea.trim()) {
-                    alert('" . esc_js(__('Please enter an idea.', 'synapsewp')) . "');
-                    return;
-                }
-
-                var \$btn = $(this);
-                var \$spinner = $('#synapsewp-ai-spinner');
-                var \$resultBox = $('#synapsewp-ai-result');
-                var originalText = \$btn.text();
-
-                // UI Loading State
-                \$btn.text('" . esc_js(__('Generating...', 'synapsewp')) . "').prop('disabled', true);
-                \$spinner.addClass('is-active');
-                if (mode === 'answer') {
-                    \$resultBox.hide();
-                }
-
-                $.ajax({
-                    url: '/wp-json/synapsewp/v1/expand',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    beforeSend: function ( xhr ) {
-                        xhr.setRequestHeader( 'X-WP-Nonce', '" . wp_create_nonce('wp_rest') . "' );
-                    },
-                    data: JSON.stringify({ text: idea, mode: mode }),
-                    success: function( response ) {
-                        // Reset UI
-                        \$btn.text(originalText).prop('disabled', false);
-                        \$spinner.removeClass('is-active');
-
-                        if ( response.data ) {
-                            if (mode === 'writer') {
-                                // Writer Mode: Insert directly into editor
-                                var title = response.data.title;
-                                var content = response.data.content;
-
-                                // Update Title
-                                if (title) {
-                                    // Gutenberg
-                                    if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
-                                        wp.data.dispatch('core/editor').editPost({ title: title });
-                                    } else {
-                                        // Classic
-                                        $('#title').val(title);
-                                        $('#title-prompt-text').hide();
-                                    }
-                                }
-
-                                // Update Content
-                                if (content) {
-                                    // Gutenberg
-                                    if (typeof wp !== 'undefined' && wp.data && wp.data.select('core/editor')) {
-                                        // Create a block from the content
-                                        var block = wp.blocks.createBlock('core/paragraph', { content: content });
-                                        wp.data.dispatch('core/editor').insertBlocks(block);
-                                    } else if (typeof tinymce !== 'undefined' && tinymce.activeEditor) {
-                                        // Classic TinyMCE
-                                        tinymce.activeEditor.insertContent(content);
-                                    } else {
-                                        // Classic Textarea fallback
-                                        var currentContent = $('#content').val();
-                                        $('#content').val(currentContent + '\\n\\n' + content);
-                                    }
-                                }
-                                
-                                alert('" . esc_js(__('Content inserted successfully!', 'synapsewp')) . "');
-
-                            } else {
-                                // Answer Mode: Show in result box
-                                var displayContent = response.data.content || response.data.generated_text; // Fallback for backward compatibility
-                                if (displayContent) {
-                                     var formatted = displayContent.replace(/\\n/g, '<br>');
-                                    \$resultBox.html('<strong>" . esc_js(__('Result:', 'synapsewp')) . "</strong><br>' + formatted).fadeIn();
-                                }
-                            }
-                        } else {
-                            alert('" . esc_js(__('AI returned an empty response.', 'synapsewp')) . "');
-                        }
-                    },
-                    error: function( xhr, status, error ) {
-                        // Reset UI
-                        \$btn.text(originalText).prop('disabled', false);
-                        \$spinner.removeClass('is-active');
-
-                        var errorMsg = '" . esc_js(__('Error communicating with AI.', 'synapsewp')) . "';
-                        if ( xhr.responseJSON && xhr.responseJSON.message ) {
-                            errorMsg += '\\n' + xhr.responseJSON.message;
-                        }
-                        alert(errorMsg);
-                    }
-                });
-            });
-        });
-        ";
-
-        wp_add_inline_script('jquery', $script);
+        // Localize Script for JS variables
+        wp_localize_script('synapsewp-admin-js', 'synapsewp_vars', [
+            'ajax_url' => '/wp-json/synapsewp/v1/expand',
+            'nonce' => wp_create_nonce('wp_rest')
+        ]);
     }
 }

@@ -55,6 +55,16 @@ GPLv2 or later.
 
 ## 📦 Changelog
 
+### 1.1.0
+
+- **New Feature**: Conversational Chat Interface! Replaced the simple text box with a full chat history UI.
+- **New Feature**: Quick Prompt Templates (Headlines, Summarize, Fix Grammar, Intro).
+- **New Feature**: Native WordPress Block Support - AI content is now inserted as proper Gutenberg blocks (paragraphs, headings, lists) instead of HTML.
+- **Enhancement**: Typing indicators for better UX.
+- **Enhancement**: Smart HTML-to-text conversion for Classic Editor compatibility.
+- **Optimization**: Moved assets to dedicated CSS/JS files.
+- **Fix**: Improved JSON parsing with regex fallback for Writer Mode.
+
 ### 1.0.3
 
 - **Fix**: Enforce Max Categories limit during auto-assignment.
