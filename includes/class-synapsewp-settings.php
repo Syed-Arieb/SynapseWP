@@ -31,6 +31,8 @@ class SynapseWP_Settings
         register_setting('synapsewp_option_group', 'sma_ai_key', 'sanitize_text_field');
         register_setting('synapsewp_option_group', 'sma_ai_model', 'sanitize_text_field');
         register_setting('synapsewp_option_group', 'sma_max_categories', 'intval');
+        register_setting('synapsewp_option_group', 'sma_default_language', 'sanitize_text_field');
+        register_setting('synapsewp_option_group', 'sma_auto_alt_text', 'rest_sanitize_boolean');
 
         add_settings_section(
             'synapsewp_main_section',
@@ -59,6 +61,22 @@ class SynapseWP_Settings
             'sma_max_categories',
             'Max Categories',
             array($this, 'render_max_categories_field'),
+            'synapsewp-settings',
+            'synapsewp_main_section'
+        );
+
+        add_settings_field(
+            'sma_default_language',
+            'Default Language',
+            array($this, 'render_default_language_field'),
+            'synapsewp-settings',
+            'synapsewp_main_section'
+        );
+
+        add_settings_field(
+            'sma_auto_alt_text',
+            'Auto Alt-Text Generation',
+            array($this, 'render_auto_alt_text_field'),
             'synapsewp-settings',
             'synapsewp_main_section'
         );
@@ -96,6 +114,40 @@ class SynapseWP_Settings
         <input type="number" name="sma_max_categories" value="<?php echo esc_attr($value); ?>" min="1" max="10" step="1"
             class="small-text">
         <p class="description">Maximum number of AI-generated categories per post.</p>
+    <?php
+    }
+
+    public function render_default_language_field()
+    {
+        $language = get_option('sma_default_language', 'English');
+    ?>
+        <select name="sma_default_language">
+            <option value="English" <?php selected($language, 'English'); ?>>English</option>
+            <option value="Spanish" <?php selected($language, 'Spanish'); ?>>Spanish</option>
+            <option value="French" <?php selected($language, 'French'); ?>>French</option>
+            <option value="German" <?php selected($language, 'German'); ?>>German</option>
+            <option value="Portuguese" <?php selected($language, 'Portuguese'); ?>>Portuguese</option>
+            <option value="Italian" <?php selected($language, 'Italian'); ?>>Italian</option>
+            <option value="Japanese" <?php selected($language, 'Japanese'); ?>>Japanese</option>
+            <option value="Chinese" <?php selected($language, 'Chinese'); ?>>Chinese (Simplified)</option>
+            <option value="Arabic" <?php selected($language, 'Arabic'); ?>>Arabic</option>
+            <option value="Hindi" <?php selected($language, 'Hindi'); ?>>Hindi</option>
+            <option value="Russian" <?php selected($language, 'Russian'); ?>>Russian</option>
+            <option value="Korean" <?php selected($language, 'Korean'); ?>>Korean</option>
+        </select>
+        <p class="description">Default language for content generation and translation.</p>
+    <?php
+    }
+
+    public function render_auto_alt_text_field()
+    {
+        $enabled = get_option('sma_auto_alt_text', false);
+    ?>
+        <label>
+            <input type="checkbox" name="sma_auto_alt_text" value="1" <?php checked($enabled, true); ?>>
+            <?php esc_html_e('Automatically generate alt text when uploading images', 'synapsewp'); ?>
+        </label>
+        <p class="description">When enabled, AI will automatically generate descriptive alt text for newly uploaded images.</p>
     <?php
     }
 

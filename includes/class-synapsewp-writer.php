@@ -28,9 +28,78 @@ class SynapseWP_Writer
      */
     public function register_endpoints()
     {
+        // Existing expand endpoint
         register_rest_route('synapsewp/v1', '/expand', [
             'methods' => 'POST',
             'callback' => [$this, 'handle_expansion'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ]);
+
+        // Content rewriting endpoints
+        register_rest_route('synapsewp/v1', '/summarize', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handle_summarize'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ]);
+
+        register_rest_route('synapsewp/v1', '/paraphrase', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handle_paraphrase'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ]);
+
+        register_rest_route('synapsewp/v1', '/improve', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handle_improve'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ]);
+
+        register_rest_route('synapsewp/v1', '/simplify', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handle_simplify'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ]);
+
+        // Translation endpoint
+        register_rest_route('synapsewp/v1', '/translate', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handle_translate'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ]);
+
+        // SEO endpoints
+        register_rest_route('synapsewp/v1', '/generate-meta', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handle_generate_meta'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ]);
+
+        // FAQ and template endpoints
+        register_rest_route('synapsewp/v1', '/generate-faq', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handle_generate_faq'],
+            'permission_callback' => function () {
+                return current_user_can('edit_posts');
+            },
+        ]);
+
+        register_rest_route('synapsewp/v1', '/bullet-summary', [
+            'methods' => 'POST',
+            'callback' => [$this, 'handle_bullet_summary'],
             'permission_callback' => function () {
                 return current_user_can('edit_posts');
             },
@@ -75,25 +144,16 @@ class SynapseWP_Writer
 
             // Writer mode currently doesn't support full history context to keep the "one-shot article" focus,
             // but we could add it if requested. For now, it stays as is.
-            $raw_response = SynapseWP_API::generate($prompt);
+            $raw_response = SynapseWP_API::generate($prompt, 'json');
 
             if (is_wp_error($raw_response)) {
                 return $raw_response;
             }
 
-            // Cleanup potential markdown fences
-            $clean_json = str_replace(['```json', '```'], '', $raw_response);
-            $data = json_decode($clean_json, true);
+            $data = SynapseWP_API::parse_json_response($raw_response);
 
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                // Try to extract JSON from the string using regex if direct decode fails
-                if (preg_match('/\{.*\}/s', $clean_json, $matches)) {
-                    $data = json_decode($matches[0], true);
-                }
-            }
-
-            if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-                // Fallback
+            if (is_wp_error($data)) {
+                // Fallback: return raw output as content
                 return rest_ensure_response([
                     'data' => [
                         'title' => '',
@@ -161,18 +221,21 @@ class SynapseWP_Writer
 
         // Enhanced prompt for smarter categorization
         $prompt = "Analyze the following content and suggest exactly {$max_cats} relevant WordPress categories. 
+        Return strictly valid JSON: {\"categories\": [\"Cat1\", \"Cat2\", \"Cat3\"]}
         Rules:
-        1. Return ONLY a comma-separated list of names. 
-        2. Do NOT number them. 
-        3. Do NOT use generic terms like 'Uncategorized', 'General', or 'Updates'. 
-        4. Be specific to the topic.
+        1. Do NOT use generic terms like 'Uncategorized', 'General', or 'Updates'. 
+        2. Be specific to the topic.
         
         Content: " . $content_snippet;
 
-        $categories = SynapseWP_API::generate($prompt);
+        $raw_response = SynapseWP_API::generate($prompt, 'json');
 
-        if (!is_wp_error($categories) && !empty($categories)) {
-            $this->assign_categories($post_id, $categories, $max_cats);
+        if (!is_wp_error($raw_response)) {
+            $data = SynapseWP_API::parse_json_response($raw_response);
+            if (!is_wp_error($data) && isset($data['categories']) && is_array($data['categories'])) {
+                $category_list = implode(',', $data['categories']);
+                $this->assign_categories($post_id, $category_list, $max_cats);
+            }
         }
 
         // Re-hook in case it's needed later in the same execution (unlikely but good practice).
@@ -237,9 +300,316 @@ class SynapseWP_Writer
                 $new_cats = array_diff($new_cats, array($default_category));
             }
 
-            // wp_set_post_categories with last arg false replaces all categories. 
-            // We manipulated the array manually to include previous ones minus default, so we can use false (replace).
             wp_set_post_categories($post_id, $new_cats, false);
         }
+    }
+
+    /**
+     * Handle content summarization.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
+    public function handle_summarize($request)
+    {
+        $params = $request->get_json_params();
+        $text = wp_kses_post($params['text'] ?? '');
+        $length = sanitize_text_field($params['length'] ?? 'medium'); // short, medium, long
+
+        if (empty($text)) {
+            return new WP_Error('missing_text', __('No text provided for summarization.', 'synapsewp'), ['status' => 400]);
+        }
+
+        $length_instructions = [
+            'short' => 'in 1-2 sentences',
+            'medium' => 'in 2-3 paragraphs',
+            'long' => 'in a detailed summary'
+        ];
+
+        $instruction = $length_instructions[$length] ?? $length_instructions['medium'];
+        $prompt = "Summarize the following content {$instruction}. 
+        Rules:
+        1. Focus on the key points and main ideas.
+        2. Provide exactly ONE version of the summary. 
+        3. Do NOT provide options or alternative versions.
+        4. Do NOT include any conversational preamble or postamble.
+        
+        Content:
+        {$text}";
+
+        $output = SynapseWP_API::generate($prompt);
+
+        if (is_wp_error($output)) {
+            return $output;
+        }
+
+        return rest_ensure_response(['data' => ['content' => $output]]);
+    }
+
+    /**
+     * Handle content paraphrasing.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
+    public function handle_paraphrase($request)
+    {
+        $params = $request->get_json_params();
+        $text = wp_kses_post($params['text'] ?? '');
+        $tone = sanitize_text_field($params['tone'] ?? 'professional'); // professional, casual, academic
+
+        if (empty($text)) {
+            return new WP_Error('missing_text', __('No text provided for paraphrasing.', 'synapsewp'), ['status' => 400]);
+        }
+
+        $tone_instructions = [
+            'professional' => 'in a professional and business-appropriate style',
+            'casual' => 'in a casual and conversational style',
+            'academic' => 'in a formal and academic style'
+        ];
+
+        $instruction = $tone_instructions[$tone] ?? $tone_instructions['professional'];
+        $prompt = "Rewrite the following content {$instruction}. 
+        Rules:
+        1. Maintain the same meaning but use different words and sentence structures.
+        2. Provide exactly ONE definitive version of the rewritten text.
+        3. Do NOT provide options, choices, or comparisons.
+        4. Do NOT include any conversational preamble or postamble.
+        
+        Content:
+        {$text}";
+
+        $output = SynapseWP_API::generate($prompt);
+
+        if (is_wp_error($output)) {
+            return $output;
+        }
+
+        return rest_ensure_response(['data' => ['content' => $output]]);
+    }
+
+    /**
+     * Handle content improvement.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
+    public function handle_improve($request)
+    {
+        $params = $request->get_json_params();
+        $text = wp_kses_post($params['text'] ?? '');
+
+        if (empty($text)) {
+            return new WP_Error('missing_text', __('No text provided for improvement.', 'synapsewp'), ['status' => 400]);
+        }
+
+        $prompt = "Improve the following content by fixing grammar, enhancing clarity, improving flow, and making it more engaging. 
+        Rules:
+        1. Maintain the original meaning and voice.
+        2. Provide exactly ONE definitive version of the improved text.
+        3. Do NOT provide multiple options or explanations of changes.
+        4. Do NOT include any conversational preamble or postamble.
+        
+        Content:
+        {$text}";
+
+        $output = SynapseWP_API::generate($prompt);
+
+        if (is_wp_error($output)) {
+            return $output;
+        }
+
+        return rest_ensure_response(['data' => ['content' => $output]]);
+    }
+
+    /**
+     * Handle content simplification.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
+    public function handle_simplify($request)
+    {
+        $params = $request->get_json_params();
+        $text = wp_kses_post($params['text'] ?? '');
+
+        if (empty($text)) {
+            return new WP_Error('missing_text', __('No text provided for simplification.', 'synapsewp'), ['status' => 400]);
+        }
+
+        $prompt = "Make the following content more concise and easier to read. 
+        Rules:
+        1. Remove unnecessary words and simplify complex sentences.
+        2. Maintain the key message.
+        3. Provide exactly ONE definitive version of the simplified text.
+        4. Do NOT provide multiple options or versions.
+        5. Do NOT include any conversational preamble or postamble.
+        
+        Content:
+        {$text}";
+
+        $output = SynapseWP_API::generate($prompt);
+
+        if (is_wp_error($output)) {
+            return $output;
+        }
+
+        return rest_ensure_response(['data' => ['content' => $output]]);
+    }
+
+    /**
+     * Handle content translation.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
+    public function handle_translate($request)
+    {
+        $params = $request->get_json_params();
+        $text = wp_kses_post($params['text'] ?? '');
+        $target_language = sanitize_text_field($params['target_language'] ?? '');
+
+        if (empty($text)) {
+            return new WP_Error('missing_text', __('No text provided for translation.', 'synapsewp'), ['status' => 400]);
+        }
+
+        if (empty($target_language)) {
+            return new WP_Error('missing_language', __('No target language specified.', 'synapsewp'), ['status' => 400]);
+        }
+
+        $prompt = "Translate the following content to {$target_language}. 
+        Rules:
+        1. Maintain the formatting, tone, and structure.
+        2. Provide exactly ONE definitive translation.
+        3. Do NOT provide options or alternative phrasings.
+        4. Do NOT include any conversational preamble or postamble.
+        
+        Content:
+        {$text}";
+
+        $output = SynapseWP_API::generate($prompt);
+
+        if (is_wp_error($output)) {
+            return $output;
+        }
+
+        return rest_ensure_response(['data' => ['content' => $output]]);
+    }
+
+    /**
+     * Handle SEO meta description generation.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
+    public function handle_generate_meta($request)
+    {
+        $params = $request->get_json_params();
+        $content = wp_kses_post($params['content'] ?? '');
+        $title = sanitize_text_field($params['title'] ?? '');
+
+        if (empty($content)) {
+            return new WP_Error('missing_content', __('No content provided for meta generation.', 'synapsewp'), ['status' => 400]);
+        }
+
+        $title_context = !empty($title) ? "Post Title: {$title}\n\n" : '';
+
+        $prompt = "{$title_context}Based on the following content, generate:
+1. An SEO-optimized meta description (150-160 characters)
+2. 3-5 focus keywords
+3. A brief SEO score and 2-3 improvement suggestions
+
+Return strictly valid JSON in this exact format:
+{
+    \"meta_description\": \"Your meta description here\",
+    \"keywords\": [\"keyword1\", \"keyword2\", \"keyword3\"],
+    \"seo_score\": \"Good/Average/Needs Work\",
+    \"suggestions\": [\"suggestion1\", \"suggestion2\"]
+}
+
+Content:
+{$content}";
+
+        $raw_response = SynapseWP_API::generate($prompt, 'json');
+
+        if (is_wp_error($raw_response)) {
+            return $raw_response;
+        }
+
+        $data = SynapseWP_API::parse_json_response($raw_response);
+
+        if (is_wp_error($data)) {
+            // Fallback: return raw output
+            return rest_ensure_response(['data' => ['raw' => $raw_response]]);
+        }
+
+        return rest_ensure_response(['data' => $data]);
+    }
+
+    /**
+     * Handle FAQ generation.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
+    public function handle_generate_faq($request)
+    {
+        $params = $request->get_json_params();
+        $content = wp_kses_post($params['content'] ?? '');
+
+        if (empty($content)) {
+            return new WP_Error('missing_content', __('No content provided for FAQ generation.', 'synapsewp'), ['status' => 400]);
+        }
+
+        $prompt = "Based on the following content, generate 5-7 frequently asked questions (FAQs) with answers. 
+        Rules:
+        1. Format as HTML with <h3> for questions and <p> for answers.
+        2. Provide exactly ONE definitive set of FAQs.
+        3. Do NOT provide options or conversational filler.
+        
+        Content:
+        {$content}";
+
+        $output = SynapseWP_API::generate($prompt);
+
+        if (is_wp_error($output)) {
+            return $output;
+        }
+
+        return rest_ensure_response(['data' => ['content' => $output]]);
+    }
+
+    /**
+     * Handle bullet-point summary generation.
+     *
+     * @param WP_REST_Request $request The request object.
+     * @return WP_REST_Response|WP_Error
+     */
+    public function handle_bullet_summary($request)
+    {
+        $params = $request->get_json_params();
+        $content = wp_kses_post($params['content'] ?? '');
+
+        if (empty($content)) {
+            return new WP_Error('missing_content', __('No content provided for bullet summary.', 'synapsewp'), ['status' => 400]);
+        }
+
+        $prompt = "Extract the key points from the following content and present them as a bullet-point list. 
+        Rules:
+        1. Use HTML <ul> and <li> tags. 
+        2. Limit to 5-8 main points.
+        3. Provide exactly ONE definitive list.
+        4. Do NOT provide options or conversational filler.
+        
+        Content:
+        {$content}";
+
+        $output = SynapseWP_API::generate($prompt);
+
+        if (is_wp_error($output)) {
+            return $output;
+        }
+
+        return rest_ensure_response(['data' => ['content' => $output]]);
     }
 }

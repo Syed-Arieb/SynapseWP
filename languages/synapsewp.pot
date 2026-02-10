@@ -1,0 +1,241 @@
+# Copyright (C) 2026 SynapseWP - AI Assistant
+# This file is distributed under the same license as the SynapseWP - AI Assistant package.
+msgid ""
+msgstr ""
+"Project-Id-Version: SynapseWP - AI Assistant 1.2.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/synapsewp\n"
+"POT-Creation-Date: 2026-02-10 14:20:00+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2026-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+
+#: includes/class-synapsewp-api.php
+msgid "API Key is missing. Please configure it in the SynapseWP settings."
+msgstr ""
+
+msgid "Unknown API Error."
+msgstr ""
+
+msgid "AI Error: No response generated. It might be blocked by safety settings."
+msgstr ""
+
+msgid "The URL does not point to a valid image."
+msgstr ""
+
+#: includes/class-synapsewp-writer.php
+msgid "No text provided for expansion."
+msgstr ""
+
+msgid "No text provided for summarization."
+msgstr ""
+
+msgid "No text provided for paraphrasing."
+msgstr ""
+
+msgid "No text provided for improvement."
+msgstr ""
+
+msgid "No text provided for simplification."
+msgstr ""
+
+msgid "No text provided for translation."
+msgstr ""
+
+msgid "No target language specified."
+msgstr ""
+
+msgid "No content provided for meta generation."
+msgstr ""
+
+msgid "No content provided for FAQ generation."
+msgstr ""
+
+msgid "No content provided for bullet summary."
+msgstr ""
+
+#: includes/class-synapsewp-images.php
+msgid "No attachment ID provided."
+msgstr ""
+
+msgid "The attachment is not an image."
+msgstr ""
+
+msgid "Alt text generated successfully."
+msgstr ""
+
+msgid "Processed %d images."
+msgstr ""
+
+msgid "Could not get image URL."
+msgstr ""
+
+msgid "AI Alt Text"
+msgstr ""
+
+msgid "Generate with AI"
+msgstr ""
+
+msgid "Use AI to generate descriptive alt text for this image."
+msgstr ""
+
+#: includes/class-synapsewp-ui.php
+msgid "SynapseWP AI Assistant"
+msgstr ""
+
+msgid "Chat Mode"
+msgstr ""
+
+msgid "Writer Mode"
+msgstr ""
+
+msgid "Chat"
+msgstr ""
+
+msgid "Tools"
+msgstr ""
+
+msgid "SEO"
+msgstr ""
+
+msgid "Templates"
+msgstr ""
+
+msgid "Headlines"
+msgstr ""
+
+msgid "Summarize"
+msgstr ""
+
+msgid "Fix Grammar"
+msgstr ""
+
+msgid "Intro"
+msgstr ""
+
+msgid "Hello! How can I help you write today?"
+msgstr ""
+
+msgid "Type a message..."
+msgstr ""
+
+msgid "Send"
+msgstr ""
+
+msgid "Content Tools"
+msgstr ""
+
+msgid "Select text in the editor and use these tools:"
+msgstr ""
+
+msgid "Short"
+msgstr ""
+
+msgid "Medium"
+msgstr ""
+
+msgid "Long"
+msgstr ""
+
+msgid "Paraphrase"
+msgstr ""
+
+msgid "Professional"
+msgstr ""
+
+msgid "Casual"
+msgstr ""
+
+msgid "Academic"
+msgstr ""
+
+msgid "Improve Writing"
+msgstr ""
+
+msgid "Simplify"
+msgstr ""
+
+msgid "Translation"
+msgstr ""
+
+msgid "Spanish"
+msgstr ""
+
+msgid "French"
+msgstr ""
+
+msgid "German"
+msgstr ""
+
+msgid "Portuguese"
+msgstr ""
+
+msgid "Italian"
+msgstr ""
+
+msgid "Japanese"
+msgstr ""
+
+msgid "Chinese"
+msgstr ""
+
+msgid "Arabic"
+msgstr ""
+
+msgid "Hindi"
+msgstr ""
+
+msgid "Russian"
+msgstr ""
+
+msgid "Korean"
+msgstr ""
+
+msgid "Translate"
+msgstr ""
+
+msgid "SEO Optimization"
+msgstr ""
+
+msgid "Generate Meta Description"
+msgstr ""
+
+msgid "Meta Description:"
+msgstr ""
+
+msgid "Copy"
+msgstr ""
+
+msgid "Focus Keywords:"
+msgstr ""
+
+msgid "SEO Score:"
+msgstr ""
+
+msgid "Suggestions:"
+msgstr ""
+
+msgid "Content Templates"
+msgstr ""
+
+msgid "Generate FAQ"
+msgstr ""
+
+msgid "Bullet Summary"
+msgstr ""
+
+msgid "These templates analyze your post content and generate structured sections."
+msgstr ""
+
+msgid "Processing..."
+msgstr ""
+
+#: includes/class-synapsewp-settings.php
+msgid "Automatically generate alt text when uploading images"
+msgstr ""
+
+msgid "When enabled, AI will automatically generate descriptive alt text for newly uploaded images."
+msgstr ""
